@@ -4,6 +4,10 @@ const headerBar = document.getElementById('header-bar');
 const titleSpan = document.getElementById('title');
 const openOutBtn = document.getElementById('open-out');
 const reloadBtn = document.getElementById('reload');
+const aboutBtn = document.getElementById('about-btn');
+const aboutLink = document.getElementById('about-link');
+const aboutModal = document.getElementById('about-modal');
+const closeModalBtn = document.getElementById('close-modal');
 
 let currentUrl = '';
 
@@ -65,5 +69,26 @@ reloadBtn.addEventListener('click', () => {
   if (currentUrl) {
     iframe.classList.remove('loaded');
     iframe.src = currentUrl;
+  }
+});
+
+// Modal toggle handlers
+const openModal = (e) => {
+  e.preventDefault();
+  aboutModal.classList.add('open');
+};
+
+const closeModal = () => {
+  aboutModal.classList.remove('open');
+};
+
+aboutBtn.addEventListener('click', openModal);
+aboutLink.addEventListener('click', openModal);
+closeModalBtn.addEventListener('click', closeModal);
+
+// Close modal when clicking outside the card
+aboutModal.addEventListener('click', (e) => {
+  if (e.target === aboutModal) {
+    closeModal();
   }
 });
