@@ -11,3 +11,12 @@ desktop.ini
 *.njsproj
 *.sln
 *.sw?
+
+# Chrome Extension build / metadata files
+_metadata/
+
+# Raw Icon Assets
+icons/*.jpg
+
+# Specification docs
+2026-07-25-feedly-sidepanel-reader-design.md
