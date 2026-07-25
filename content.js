@@ -1,11 +1,22 @@
 // Content script to intercept article clicks on Feedly
+const CHECKMARK_PATH = 'M20.215 5.65a.5.5 0 0 1 .77.63l-.057.07-11.786 12a.5.5 0 0 1-.643.06l-.07-.06-5.357-5.454a.5.5 0 0 1 .645-.76l.068.06 5 5.09z';
+
 document.addEventListener('click', (event) => {
   // 1. Only intercept standard left clicks without modifier keys (Ctrl, Shift, Alt, Meta)
   if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) {
     return;
   }
 
-  // 2. Do not intercept interactive elements (buttons, role="button", title actions, or internal links)
+  // 2. Do not intercept if clicking the mark-as-read checkmark button directly (identified by SVG path)
+  const clickedSvg = event.target.closest('svg');
+  if (clickedSvg) {
+    const path = clickedSvg.querySelector('path');
+    if (path && path.getAttribute('d') === CHECKMARK_PATH) {
+      return;
+    }
+  }
+
+  // Do not intercept interactive elements (buttons, role="button", title actions, or internal links)
   // This ensures "Read Later", "Save to Board", and source metadata actions work natively in Feedly.
   const interactive = event.target.closest('button, [role="button"], [title], a');
   if (interactive) {
@@ -45,7 +56,15 @@ document.addEventListener('click', (event) => {
     // Try to mark the article as read programmatically by clicking Feedly's native checkmark button
     const entry = event.target.closest('.entry');
     if (entry) {
-      const markAsReadBtn = entry.querySelector('[title*="Mark as read" i]');
+      // Look for the checkmark button by its path signature
+      const paths = entry.querySelectorAll('svg path');
+      let markAsReadBtn = null;
+      for (const p of paths) {
+        if (p.getAttribute('d') === CHECKMARK_PATH) {
+          markAsReadBtn = p.closest('button') || p.closest('[role="button"]') || p.closest('svg');
+          break;
+        }
+      }
       if (markAsReadBtn) {
         markAsReadBtn.click();
       }
