@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Feedly Sidepanel Reader</title>
+  <!-- Modern Typographic Foundation -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-base: #0a0a0c;
+      --bg-card: rgba(20, 20, 25, 0.6);
+      --border-light: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(255, 255, 255, 0.16);
+      --text-primary: #f3f4f6;
+      --text-secondary: #9ca3af;
+      --text-muted: #6b7280;
+      --accent: #2563eb;
+      --accent-glow: rgba(37, 99, 235, 0.15);
+      --transition-fluid: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+    }
+
+    /* Cinematic background grid and glow */
+    .bg-glow-container {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .bg-glow {
+      position: absolute;
+      top: -10%;
+      left: 10%;
+      width: 80%;
+      height: 60%;
+      background: radial-gradient(circle, rgba(37, 99, 235, 0.08) 0%, rgba(0, 0, 0, 0) 70%);
+      filter: blur(40px);
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Glassmorphic Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 16px;
+      background: rgba(10, 10, 12, 0.8);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-light);
+      box-sizing: border-box;
+      height: 48px;
+      transition: var(--transition-fluid);
+    }
+
+    .header-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      overflow: hidden;
+      flex: 1;
+      margin-right: 12px;
+    }
+
+    .status-indicator {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: #10b981;
+      box-shadow: 0 0 8px #10b981;
+      flex-shrink: 0;
+      animation: pulse-glow 2s infinite;
+    }
+
+    .header-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      letter-spacing: -0.01em;
+    }
+
+    .controls {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    /* Nested double-bezel button styling */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-light);
+      padding: 6px 12px;
+      font-size: 11px;
+      font-weight: 500;
+      font-family: inherit;
+      border-radius: 9999px;
+      cursor: pointer;
+      color: var(--text-secondary);
+      transition: var(--transition-fluid);
+      gap: 6px;
+      box-shadow: inset 0 1px 0px rgba(255, 255, 255, 0.05);
+    }
+
+    .btn:hover {
+      background-color: rgba(255, 255, 255, 0.08);
+      border-color: var(--border-hover);
+      color: var(--text-primary);
+      transform: translateY(-1px);
+    }
+
+    .btn:active {
+      transform: translateY(0) scale(0.98);
+    }
+
+    .btn-icon-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.05);
+      transition: var(--transition-fluid);
+    }
+
+    .btn:hover .btn-icon-wrapper {
+      background: rgba(255, 255, 255, 0.15);
+      transform: rotate(15deg);
+    }
+
+    /* Premium Iframe */
+    iframe {
+      flex: 1;
+      width: 100%;
+      border: none;
+      background-color: #ffffff;
+      transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      opacity: 0;
+    }
+
+    iframe.loaded {
+      opacity: 1;
+    }
+
+    /* Ethereal Glass Placeholder */
+    .placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--text-secondary);
+      text-align: center;
+      padding: 32px;
+      box-sizing: border-box;
+      z-index: 1;
+    }
+
+    /* Double-Bezel Nested Card inside Placeholder */
+    .placeholder-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: 24px;
+      padding: 40px 32px;
+      max-width: 280px;
+      box-shadow: 
+        0 10px 30px -10px rgba(0, 0, 0, 0.5),
+        inset 0 1px 1px rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      transition: var(--transition-fluid);
+      animation: float-card 6s ease-in-out infinite;
+    }
+
+    .placeholder-icon-container {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: radial-gradient(135deg, rgba(37, 99, 235, 0.2) 0%, rgba(37, 99, 235, 0.05) 100%);
+      border: 1px solid rgba(37, 99, 235, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px auto;
+      box-shadow: 0 0 20px var(--accent-glow);
+      position: relative;
+    }
+
+    .placeholder-icon-container::after {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      border: 1px dashed rgba(37, 99, 235, 0.15);
+      animation: rotate-dashed 20s linear infinite;
+    }
+
+    .placeholder-card h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 0 0 12px 0;
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+    }
+
+    .placeholder-card p {
+      font-size: 12px;
+      line-height: 1.6;
+      margin: 0;
+      color: var(--text-muted);
+    }
+
+    /* Animations */
+    @keyframes pulse-glow {
+      0%, 100% {
+        opacity: 0.6;
+        box-shadow: 0 0 6px #10b981;
+      }
+      50% {
+        opacity: 1;
+        box-shadow: 0 0 12px #10b981;
+      }
+    }
+
+    @keyframes float-card {
+      0%, 100% {
+        transform: translateY(0px);
+      }
+      50% {
+        transform: translateY(-8px);
+      }
+    }
+
+    @keyframes rotate-dashed {
+      from {
+        transform: rotate(0deg);
+      }
+      to {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-glow-container">
+    <div class="bg-glow"></div>
+  </div>
+
+  <div class="container">
+    <!-- Header Bar -->
+    <div id="header-bar" class="header" style="display: none;">
+      <div class="header-info">
+        <div class="status-indicator"></div>
+        <span id="title" class="header-title">Reading Article</span>
+      </div>
+      <div class="controls">
+        <button id="open-out" class="btn" title="Open in new tab">
+          Open Ext
+          <span class="btn-icon-wrapper">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg>
+          </span>
+        </button>
+        <button id="reload" class="btn" title="Reload article">
+          Reload
+          <span class="btn-icon-wrapper">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
+          </span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Ethereal Placeholder -->
+    <div id="placeholder" class="placeholder">
+      <div class="placeholder-card">
+        <div class="placeholder-icon-container">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+          </svg>
+        </div>
+        <h3>Sidepanel Reader</h3>
+        <p>Select any article container or link in Feedly to load the direct web page in this sidebar.</p>
+      </div>
+    </div>
+
+    <!-- Article Frame -->
+    <iframe id="article-frame" style="display: none;"></iframe>
+  </div>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>
