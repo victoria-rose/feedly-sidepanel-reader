@@ -5,9 +5,17 @@ document.addEventListener('click', (event) => {
     return;
   }
 
-  // 2. Do not intercept if clicking the mark-as-read checkmark or keep-unread button directly
-  if (event.target.closest('[title*="Mark as read" i]') || event.target.closest('[title*="Keep unread" i]')) {
-    return;
+  // 2. Do not intercept interactive elements (buttons, role="button", title actions, or internal links)
+  // This ensures "Read Later", "Save to Board", and source metadata actions work natively in Feedly.
+  const interactive = event.target.closest('button, [role="button"], [title], a');
+  if (interactive) {
+    if (interactive.tagName === 'A') {
+      if (!interactive.href || !interactive.hostname || interactive.hostname === window.location.hostname) {
+        return;
+      }
+    } else {
+      return;
+    }
   }
 
   // 3. Find the closest link anchor
