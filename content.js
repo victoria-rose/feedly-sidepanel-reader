@@ -5,10 +5,15 @@ document.addEventListener('click', (event) => {
     return;
   }
 
-  // 2. Find the closest link anchor
+  // 2. Do not intercept if clicking the mark-as-read checkmark or keep-unread button directly
+  if (event.target.closest('[title*="Mark as read" i]') || event.target.closest('[title*="Keep unread" i]')) {
+    return;
+  }
+
+  // 3. Find the closest link anchor
   let link = event.target.closest('a');
 
-  // 3. If not clicking a link directly, check if the clicked element is inside a Feedly article card
+  // 4. If not clicking a link directly, check if the clicked element is inside a Feedly article card
   if (!link) {
     const entry = event.target.closest('.entry');
     if (entry) {
@@ -23,11 +28,20 @@ document.addEventListener('click', (event) => {
     }
   }
 
-  // 4. Verify we have a valid link pointing to an external website
+  // 5. Verify we have a valid link pointing to an external website
   if (link && link.href && link.hostname && link.hostname !== window.location.hostname) {
     // Intercept click and stop Feedly's native SPA router from opening the default preview
     event.preventDefault();
     event.stopPropagation();
+
+    // Try to mark the article as read programmatically by clicking Feedly's native checkmark button
+    const entry = event.target.closest('.entry');
+    if (entry) {
+      const markAsReadBtn = entry.querySelector('[title*="Mark as read" i]');
+      if (markAsReadBtn) {
+        markAsReadBtn.click();
+      }
+    }
 
     // Send the URL to background.js to open in the side panel
     chrome.runtime.sendMessage({
